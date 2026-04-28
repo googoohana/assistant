@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GGHN 콘텐츠 비서</title>
+<style>
+  /* ─────────────── 디자인 원칙 ───────────────
+     - 흰 배경, 검정 텍스트, 포인트 1색(빨강 #d4351c)
+     - 모바일 우선
+     - 헤더/푸터 군더더기 없음
+  ──────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+                 "Segoe UI", "Malgun Gothic", sans-serif;
+    background: #ffffff;
+    color: #111111;
+    line-height: 1.6;
+    font-size: 16px;
+  }
+  .container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 20px 16px 80px;
+  }
+  header { margin-bottom: 24px; }
+  header h1 {
+    font-size: 20px;
+    margin: 0 0 4px;
+    font-weight: 600;
+  }
+  header .sub {
+    font-size: 13px;
+    color: #666;
+  }
+  .settings-btn {
+    position: absolute;
+    top: 20px;
+    right: 16px;
+    background: none;
+    border: 1px solid #ddd;
+    padding: 6px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  /* 탭 */
+  .tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid #e5e5e5;
+    margin-bottom: 20px;
+  }
+  .tab {
+    flex: 1;
+    padding: 12px 8px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    font-size: 14px;
+    cursor: pointer;
+    color: #666;
+    font-weight: 500;
+  }
+  .tab.active {
+    color: #d4351c;
+    border-bottom-color: #d4351c;
+  }
+  /* 입력/출력 영역 */
+  .label {
+    display: block;
+    font-size: 13px;
+    color: #555;
+    margin-bottom: 8px;
+  }
+  textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 15px;
+    line-height: 1.5;
+    resize: vertical;
+    min-height: 120px;
+  }
+  textarea:focus { outline: 2px solid #d4351c; outline-offset: -1px; border-color: #d4351c; }
+  select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    margin-top: 8px;
+    background: white;
+  }
+  .primary-btn {
+    background: #111;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    font-size: 15px;
+    cursor: pointer;
+    border-radius: 4px;
+    margin-top: 12px;
+    font-weight: 500;
+  }
+  .primary-btn:hover { background: #d4351c; }
+  .primary-btn:disabled { background: #ccc; cursor: not-allowed; }
+  .output {
+    margin-top: 24px;
+    padding: 20px;
+    background: #fafafa;
+    border-left: 3px solid #d4351c;
+    border-radius: 4px;
+    white-space: pre-wrap;
+    font-size: 15px;
+    min-height: 60px;
+  }
+  .output:empty::before {
+    content: "응답이 여기에 나타납니다.";
+    color: #aaa;
+  }
+  /* 하단 액션 */
+  .actions {
+    margin-top: 16px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .secondary-btn {
+    background: white;
+    color: #111;
+    border: 1px solid #ddd;
+    padding: 10px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  .secondary-btn:hover { border-color: #d4351c; color: #d4351c; }
+  /* 푸터 */
+  .footer {
+    margin-top: 40px;
+    padding-top: 16px;
+    border-top: 1px solid #eee;
+    font-size: 12px;
+    color: #888;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  /* 모달 */
+  .modal-backdrop {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .modal-backdrop.show { display: flex; }
+  .modal {
+    background: white;
+    border-radius: 8px;
+    padding: 24px;
+    max-width: 480px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal h2 { margin-top: 0; font-size: 17px; }
+  .modal label { display: block; margin-top: 12px; font-size: 13px; color: #555; }
+  .modal input[type="password"], .modal input[type="text"] {
+    width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;
+    font-size: 14px; font-family: inherit; margin-top: 4px;
+  }
+  .modal .modal-actions {
+    margin-top: 20px; display: flex; gap: 8px; justify-content: flex-end;
+  }
+  .hint {
+    font-size: 12px; color: #888; margin-top: 4px; line-height: 1.5;
+  }
+  .error {
+    background: #fff3f0;
+    border-left: 3px solid #d4351c;
+    padding: 10px 12px;
+    margin-top: 12px;
+    font-size: 13px;
+    color: #b22b15;
+    border-radius: 4px;
+  }
+  .info-banner {
+    background: #fffbe6;
+    border-left: 3px solid #f0c419;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    color: #6b5d00;
+    border-radius: 4px;
+  }
+</style>
+</head>
+<body>
+
+<button class="settings-btn" onclick="openSettings()">⚙ 설정</button>
+
+<div class="container">
+  <header>
+    <h1>GGHN 콘텐츠 비서</h1>
+    <div class="sub">일상의 1%를 99로 옮기는 자리</div>
+  </header>
+
+  <!-- 탭 -->
+  <div class="tabs">
+    <button class="tab active" data-workflow="1-discover" onclick="switchTab(this)">발굴</button>
+    <button class="tab" data-workflow="2-draft" onclick="switchTab(this)">초안</button>
+    <button class="tab" data-workflow="3-review" onclick="switchTab(this)">검수</button>
+  </div>
+
+  <!-- 입력 영역 -->
+  <div id="input-area">
+    <label class="label" id="input-label">오늘 관찰한 장면을 적어보세요</label>
+    <textarea id="user-input" placeholder="예: 출근길 지하철에서 본 졸고 있는 회사원의 손에 들린 우산이 한쪽으로 살짝 기울어 있었다."></textarea>
+
+    <!-- 초안 탭에서만 보임 -->
+    <div id="format-row" style="display:none; margin-top:8px;">
+      <span class="label" style="display:inline; margin-right:8px;">형식</span>
+      <select id="format-select">
+        <option value="인스타 캡션">인스타 캡션</option>
+        <option value="시나리오">시나리오</option>
+        <option value="스크립트">스크립트</option>
+      </select>
+    </div>
+
+    <button class="primary-btn" id="submit-btn" onclick="run()">비서에게 부탁하기</button>
+  </div>
+
+  <!-- 출력 -->
+  <div class="output" id="output"></div>
+
+  <!-- 하단 액션 -->
+  <div class="actions">
+    <button class="secondary-btn" onclick="openLogModal()">📝 이번 결과 기록하기</button>
+    <button class="secondary-btn" onclick="downloadLog()">⬇ log.json 다운로드</button>
+  </div>
+
+  <!-- 푸터 -->
+  <div class="footer">
+    <span id="brand-version">정의서 로딩 중…</span>
+    <span id="model-info">모델: 로딩 중…</span>
+  </div>
+</div>
+
+<!-- 설정 모달 -->
+<div class="modal-backdrop" id="settings-modal">
+  <div class="modal">
+    <h2>설정</h2>
+    <label>Google Gemini API 키</label>
+    <input type="password" id="api-key-input" placeholder="AIza...">
+    <div class="hint">키는 이 브라우저에만 저장됩니다(localStorage). GitHub에 올라가지 않습니다.<br>발급: <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a> (무료, 신용카드 불필요)</div>
+
+    <label>모델</label>
+    <input type="text" id="model-input" placeholder="gemini-2.5-flash">
+    <div class="hint">기본값: gemini-2.5-flash (무료 티어, 하루 500회). 더 강력한 모델: gemini-2.5-pro (하루 25회 제한).</div>
+
+    <div class="modal-actions">
+      <button class="secondary-btn" onclick="reloadConfig()">config 새로고침</button>
+      <button class="primary-btn" onclick="saveSettings()">저장</button>
+    </div>
+    <div id="settings-msg" style="margin-top:12px; font-size:13px; color:#666;"></div>
+  </div>
+</div>
+
+<!-- 기록 모달 -->
+<div class="modal-backdrop" id="log-modal">
+  <div class="modal">
+    <h2>이번 결과 기록하기</h2>
+    <div class="hint">짧게 메모하세요. 다음번 비서가 당신의 결을 더 잘 따라갑니다.</div>
+
+    <label>좋았던 점 (what_worked)</label>
+    <textarea id="log-worked" rows="2"></textarea>
+
+    <label>안 맞았던 점 (what_didnt)</label>
+    <textarea id="log-didnt" rows="2"></textarea>
+
+    <label>오늘의 한 줄 교훈 (lesson)</label>
+    <textarea id="log-lesson" rows="2"></textarea>
+
+    <label>출력을 실제로 사용했나요?</label>
+    <select id="log-used">
+      <option value="true">네, 사용함</option>
+      <option value="false">아니요, 안 씀</option>
+    </select>
+
+    <div class="modal-actions">
+      <button class="secondary-btn" onclick="closeLogModal()">취소</button>
+      <button class="primary-btn" onclick="saveLog()">저장 (브라우저)</button>
+    </div>
+    <div class="hint" style="margin-top:12px;">
+      저장하면 브라우저에 누적됩니다. 정식으로 누적하려면 하단의 "log.json 다운로드"로 파일을 받아 GitHub의 <code>memory/log.json</code>에 덮어쓰고 push하세요.
+    </div>
+  </div>
+</div>
+
+<script>
+/* ───────────────────────────────────────
+   GGHN 콘텐츠 비서 — 클라이언트 로직
+   주석을 천천히 읽으면 구조가 보입니다.
+─────────────────────────────────────── */
+
+// 1. 상태: 어떤 탭이 켜져 있는지, 마지막 입출력은 뭔지
+const state = {
+  workflow: '1-discover',  // 현재 탭
+  config: {                // config 폴더에서 fetch한 내용
+    brand: '',
+    systemPrompt: '',
+    workflows: {}
+  },
+  brandVersion: '?',
+  log: { entries: [] },    // memory/log.json 내용
+  lastInput: '',
+  lastOutput: ''
+};
+
+// 2. localStorage 키
+const LS_API_KEY = 'gghn_api_key';
+const LS_MODEL   = 'gghn_model';
+const LS_LOG     = 'gghn_log_local';  // 브라우저 누적분
+
+// 3. 시작할 때 한 번 실행
+async function init() {
+  await loadConfig();
+  loadLocalLog();
+  refreshUI();
+}
+
+// 4. config 폴더의 모든 .md 파일을 fetch
+async function loadConfig() {
+  try {
+    const [brand, systemPrompt, w1, w2, w3, log] = await Promise.all([
+      fetch('config/brand.md').then(r => r.text()),
+      fetch('config/system-prompt.md').then(r => r.text()),
+      fetch('config/workflows/1-discover.md').then(r => r.text()),
+      fetch('config/workflows/2-draft.md').then(r => r.text()),
+      fetch('config/workflows/3-review.md').then(r => r.text()),
+      fetch('memory/log.json').then(r => r.json()).catch(() => ({entries: []}))
+    ]);
+
+    state.config.brand = brand;
+    state.config.systemPrompt = systemPrompt;
+    state.config.workflows = {
+      '1-discover': w1,
+      '2-draft': w2,
+      '3-review': w3
+    };
+
+    // 서버의 log.json과 브라우저 누적분을 병합
+    const localLog = JSON.parse(localStorage.getItem(LS_LOG) || '{"entries":[]}');
+    state.log = {
+      entries: [...(log.entries || []), ...(localLog.entries || [])]
+    };
+
+    // brand.md 첫 frontmatter에서 version 추출
+    const m = brand.match(/^---[\s\S]*?version:\s*(\S+)/);
+    state.brandVersion = m ? m[1] : '?';
+
+  } catch (e) {
+    console.error('config 로드 실패', e);
+    showError('config 폴더를 읽지 못했습니다. 파일 경로를 확인하세요.');
+  }
+}
+
+// 5. 브라우저에 쌓인 로그 불러오기
+function loadLocalLog() {
+  const local = JSON.parse(localStorage.getItem(LS_LOG) || '{"entries":[]}');
+  // state.log는 이미 init에서 합쳐졌으므로 여기서는 표시만
+}
+
+// 6. UI 업데이트 (버전, 모델 표시 등)
+function refreshUI() {
+  document.getElementById('brand-version').textContent =
+    `정의서 ${state.brandVersion}`;
+  const model = localStorage.getItem(LS_MODEL) || 'gemini-2.5-flash';
+  document.getElementById('model-info').textContent = `모델: ${model}`;
+}
+
+// 7. 탭 전환
+function switchTab(btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  state.workflow = btn.dataset.workflow;
+
+  // 라벨/플레이스홀더/형식선택 보이기 토글
+  const labelEl = document.getElementById('input-label');
+  const inputEl = document.getElementById('user-input');
+  const formatRow = document.getElementById('format-row');
+
+  if (state.workflow === '1-discover') {
+    labelEl.textContent = '오늘 관찰한 장면을 적어보세요';
+    inputEl.placeholder = '예: 출근길 지하철에서 본 졸고 있는 회사원의 손에 들린 우산이 한쪽으로 살짝 기울어 있었다.';
+    formatRow.style.display = 'none';
+  } else if (state.workflow === '2-draft') {
+    labelEl.textContent = '발굴에서 고른 아이디어를 붙여넣으세요';
+    inputEl.placeholder = '예: 우산 한쪽이 기울어진 회사원의 모습 위에 "오늘 하루도 너의 무게를 잠깐 봐줬어"라는 작은 말풍선을 얹는다.';
+    formatRow.style.display = 'block';
+  } else {
+    labelEl.textContent = '검수받을 콘텐츠를 붙여넣으세요';
+    inputEl.placeholder = '예: 완성한 인스타 캡션, 시나리오, 스크립트 등';
+    formatRow.style.display = 'none';
+  }
+
+  document.getElementById('output').textContent = '';
+}
+
+// 8. 시스템 프롬프트 조립
+//    [브랜드 정의서] + [시스템 프롬프트] + [현재 워크플로우] + [최근 학습 메모]
+function buildSystemPrompt() {
+  const recentLessons = (state.log.entries || [])
+    .slice(-7)  // 최근 7개
+    .map((e, i) => `${i+1}. (${e.date || '?'}) ${e.lesson || ''}`)
+    .filter(s => s.trim().length > 5)
+    .join('\n');
+
+  const lessonsBlock = recentLessons
+    ? `\n\n[최근 학습 메모]\n사용자가 이전에 남긴 결입니다. 이 결을 따라가되, 그대로 인용하지 마세요.\n${recentLessons}`
+    : '';
+
+  return `[브랜드 정의서]
+${state.config.brand}
+
+---
+
+[비서의 역할]
+${state.config.systemPrompt}
+
+---
+
+[현재 워크플로우]
+${state.config.workflows[state.workflow] || ''}
+${lessonsBlock}`;
+}
+
+// 9. 사용자 메시지 조립
+function buildUserMessage() {
+  const input = document.getElementById('user-input').value.trim();
+  if (!input) return '';
+
+  if (state.workflow === '2-draft') {
+    const format = document.getElementById('format-select').value;
+    return `[형식: ${format}]\n\n${input}`;
+  }
+  return input;
+}
+
+// 10. API 호출 + 스트리밍
+async function run() {
+  const apiKey = localStorage.getItem(LS_API_KEY);
+  if (!apiKey) {
+    showError('먼저 우상단 ⚙ 설정에서 Google Gemini API 키를 입력하세요.');
+    return;
+  }
+
+  const userMsg = buildUserMessage();
+  if (!userMsg) {
+    showError('입력이 비어있습니다.');
+    return;
+  }
+
+  const model = localStorage.getItem(LS_MODEL) || 'claude-haiku-4-5-20251001';
+  const systemPrompt = buildSystemPrompt();
+  const outputEl = document.getElementById('output');
+  const submitBtn = document.getElementById('submit-btn');
+
+  state.lastInput = userMsg;
+  state.lastOutput = '';
+  outputEl.textContent = '';
+  submitBtn.disabled = true;
+  submitBtn.textContent = '응답 생성 중…';
+
+  try {
+    // Gemini API: 스트리밍 엔드포인트
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: systemPrompt }] },
+        contents: [{ role: 'user', parts: [{ text: userMsg }] }],
+        generationConfig: { maxOutputTokens: 2000 }
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`API 오류 (${response.status}): ${errText.slice(0, 300)}`);
+    }
+
+    // SSE 스트리밍 파싱 (Gemini 형식)
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        try {
+          const data = JSON.parse(line.slice(6));
+          const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (text) {
+            outputEl.textContent += text;
+            state.lastOutput += text;
+          }
+        } catch (e) { /* 일부 이벤트는 파싱 안 됨, 무시 */ }
+      }
+    }
+
+  } catch (e) {
+    showError('호출 실패: ' + e.message);
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = '비서에게 부탁하기';
+  }
+}
+
+// 11. 에러 표시
+function showError(msg) {
+  const outputEl = document.getElementById('output');
+  outputEl.innerHTML = `<div class="error">${msg}</div>`;
+}
+
+// 12. 설정 모달
+function openSettings() {
+  document.getElementById('api-key-input').value = localStorage.getItem(LS_API_KEY) || '';
+  document.getElementById('model-input').value = localStorage.getItem(LS_MODEL) || 'claude-haiku-4-5-20251001';
+  document.getElementById('settings-modal').classList.add('show');
+}
+function saveSettings() {
+  const key = document.getElementById('api-key-input').value.trim();
+  const model = document.getElementById('model-input').value.trim() || 'gemini-2.5-flash';
+  if (key) localStorage.setItem(LS_API_KEY, key);
+  localStorage.setItem(LS_MODEL, model);
+  document.getElementById('settings-msg').textContent = '저장됨.';
+  refreshUI();
+  setTimeout(() => {
+    document.getElementById('settings-modal').classList.remove('show');
+    document.getElementById('settings-msg').textContent = '';
+  }, 600);
+}
+async function reloadConfig() {
+  document.getElementById('settings-msg').textContent = 'config 다시 읽는 중…';
+  await loadConfig();
+  refreshUI();
+  document.getElementById('settings-msg').textContent = 'config 새로고침 완료.';
+}
+
+// 모달 바깥 클릭 시 닫기
+document.getElementById('settings-modal').addEventListener('click', e => {
+  if (e.target.id === 'settings-modal') e.target.classList.remove('show');
+});
+document.getElementById('log-modal').addEventListener('click', e => {
+  if (e.target.id === 'log-modal') e.target.classList.remove('show');
+});
+
+// 13. 기록 모달
+function openLogModal() {
+  document.getElementById('log-worked').value = '';
+  document.getElementById('log-didnt').value = '';
+  document.getElementById('log-lesson').value = '';
+  document.getElementById('log-modal').classList.add('show');
+}
+function closeLogModal() {
+  document.getElementById('log-modal').classList.remove('show');
+}
+function saveLog() {
+  const entry = {
+    date: new Date().toISOString().slice(0, 10),
+    workflow: state.workflow,
+    input_summary: state.lastInput.slice(0, 120),
+    output_used: document.getElementById('log-used').value === 'true',
+    what_worked: document.getElementById('log-worked').value.trim(),
+    what_didnt: document.getElementById('log-didnt').value.trim(),
+    lesson: document.getElementById('log-lesson').value.trim()
+  };
+  // 브라우저 로컬 누적분에 추가
+  const local = JSON.parse(localStorage.getItem(LS_LOG) || '{"entries":[]}');
+  local.entries.push(entry);
+  localStorage.setItem(LS_LOG, JSON.stringify(local));
+  // 메모리 상태에도 즉시 반영
+  state.log.entries.push(entry);
+
+  closeLogModal();
+  alert('기록되었습니다. 정식 누적은 하단 "log.json 다운로드" → GitHub의 memory/log.json에 덮어쓰기 → push.');
+}
+
+// 14. log.json 다운로드 (서버 원본 + 로컬 누적분 병합본)
+function downloadLog() {
+  const merged = { entries: state.log.entries };
+  const blob = new Blob([JSON.stringify(merged, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'log.json';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// 시작!
+init();
+</script>
+
+</body>
+</html>

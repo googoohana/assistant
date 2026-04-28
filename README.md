@@ -50,7 +50,7 @@ git push
 
 ### 1-4. Google Gemini API 키 발급 (무료, 신용카드 불필요)
 
-1. [aistudio.google.com/apikey](https://aistudio.google.com/apikey) 접속 AIzaSyCDWPYdYJRHCvMe9tJmLRexL662YteWJUw
+1. [aistudio.google.com/apikey](https://aistudio.google.com/apikey) 접속
 2. Google 계정으로 로그인
 3. **Create API key** 클릭
 4. 표시된 키(`AIza...`로 시작)를 복사해서 메모장에 임시 저장
